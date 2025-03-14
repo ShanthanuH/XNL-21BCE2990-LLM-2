@@ -1,0 +1,26 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bloom-sentiment-ingress
+  namespace: model-serving
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - model-api.xnl-innovations.com
+    secretName: model-api-tls
+  rules:
+  - host: model-api.xnl-innovations.com
+    http:
+      paths:
+      - path: /api/v1/sentiment
+        pathType: Prefix
+        backend:
+          service:
+            name: bloom-sentiment-service
+            port:
+              number: 80

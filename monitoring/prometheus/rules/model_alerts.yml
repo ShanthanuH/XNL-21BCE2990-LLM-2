@@ -1,0 +1,39 @@
+
+groups:
+- name: model_alerts
+  rules:
+  - alert: HighErrorRate
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High API error rate"
+      description: "API error rate is above 5% for 5 minutes (current value: {{ $value }})"
+
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=~"/predict.*"}[5m])) by (le)) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High API latency"
+      description: "95th percentile API latency is above 500ms for 5 minutes (current value: {{ $value }}s)"
+
+  - alert: PodRestarting
+    expr: increase(kube_pod_container_status_restarts_total{namespace="model-serving"}[15m]) > 3
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Pod restarting frequently"
+      description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last 15 minutes"
+
+  - alert: ClassImbalance
+    expr: sum by(class) (rate(model_predictions_total[30m])) / ignoring(class) sum(rate(model_predictions_total[30m])) > 0.8
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Prediction class imbalance detected"
+      description: "Class {{ $labels.class }} represents more than 80% of predictions in the last 30 minutes ({{ $value | humanizePercentage }})"

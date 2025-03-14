@@ -1,0 +1,64 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bloom-sentiment-gcp
+  namespace: model-serving
+  labels:
+    app: bloom-sentiment
+    cloud: gcp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bloom-sentiment
+      cloud: gcp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bloom-sentiment
+        cloud: gcp
+    spec:
+      containers:
+      - name: model-server
+        image: gcr.io/xnl-project/bloom-sentiment:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "16Gi"
+            cpu: "4"
+            nvidia.com/gpu: 1
+        env:
+        - name: DEPLOYMENT_CLOUD
+          value: "GCP"
+        - name: MODEL_PATH
+          value: "/models/bloom-finetuned-sentiment"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 5
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-storage-pvc-gcp

@@ -1,0 +1,26 @@
+
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: bloom-sentiment-scaler
+  namespace: model-serving
+spec:
+  scaleTargetRef:
+    name: bloom-sentiment-aws
+  minReplicaCount: 2
+  maxReplicaCount: 20
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus-server.monitoring.svc.cluster.local
+      metricName: http_requests_total
+      threshold: "50"
+      query: sum(rate(http_requests_total{app="bloom-sentiment"}[2m]))
+  - type: cpu
+    metadata:
+      type: Utilization
+      value: "70"
+  - type: memory
+    metadata:
+      type: Utilization
+      value: "80"
